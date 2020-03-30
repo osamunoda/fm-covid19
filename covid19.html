@@ -1,0 +1,92 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            padding: 2rem;
+            background: #eee;
+        }
+
+        h1 {
+            padding: 1rem;
+        }
+
+        h3>* {
+            vertical-align: middle;
+        }
+
+        li {
+            padding: 0;
+        }
+
+        ul {
+            background: white;
+        }
+
+        input[type=radio] {
+            margin: 1rem 0.25rem 1rem 1rem;
+        }
+
+        input[type=radio]:not(:checked)+label,
+        input[type=radio]:not(:checked) {
+            opacity: 0.5;
+        }
+
+        header {
+            color: white;
+            background-color: #333;
+            ;
+        }
+
+        main {
+            display: flex;
+            padding: 1rem;
+        }
+
+        main>div {
+            padding: 1rem;
+        }
+
+        #latestDate {
+            text-align: right;
+            padding: 1rem;
+        }
+
+        svg {
+            background: white;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Covid-19</h1>
+        <h3>
+            <input type="radio" value="confirmed" id="confirmed" name="case" checked /><label
+                for="confirmed">Confirmed</label>
+            <input type="radio" value="death" id="death" name="case" /><label for="death">Death</label>
+            <input type="radio" value="recovered" id="recovered" name="case" /><label for="recovered">Recovered</label>
+        </h3>
+    </header>
+    <main>
+        <div>
+            <div id="container"></div>
+        </div>
+        <div>
+            <h3 id="latestDate"></h3>
+            <svg></svg>
+        </div>
+    </main>
+</body>
+<script src="dist/main.js"></script>
+
+</html>
