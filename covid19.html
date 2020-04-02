@@ -21,8 +21,15 @@
             padding: 1rem;
         }
 
+        h3 {
+            background: #333;
+            color: white;
+            padding: 1rem;
+        }
+
         h3>* {
             vertical-align: middle;
+            color: white;
         }
 
         li {
@@ -33,7 +40,7 @@
             background: white;
         }
 
-        input[type=radio] {
+        h3 input[type=radio] {
             margin: 1rem 0.25rem 1rem 1rem;
         }
 
@@ -49,15 +56,23 @@
         }
 
         main {
-            display: flex;
             padding: 1rem;
+        }
+
+        section {
+            padding: 1rem;
+        }
+
+        main>section {
+            display: flex;
         }
 
         main>div {
             padding: 1rem;
         }
 
-        #latestDate {
+        #latestDate,
+        #selectedCountry {
             text-align: right;
             padding: 1rem;
         }
@@ -71,21 +86,38 @@
 <body>
     <header>
         <h1>Covid-19</h1>
-        <h3>
+        <h3 id="caseTypes">
             <input type="radio" value="confirmed" id="confirmed" name="case" checked /><label
                 for="confirmed">Confirmed</label>
             <input type="radio" value="death" id="death" name="case" /><label for="death">Death</label>
             <input type="radio" value="recovered" id="recovered" name="case" /><label for="recovered">Recovered</label>
+            <input type="radio" value="active" id="active" name="case" /><label for="active">Active</label>
         </h3>
     </header>
     <main>
-        <div>
-            <div id="container"></div>
-        </div>
-        <div>
-            <h3 id="latestDate"></h3>
-            <svg></svg>
-        </div>
+        <section>
+            <div>
+                <div id="container"></div>
+            </div>
+            <div>
+                <h3 id="latestDate"></h3>
+                <svg id="s1"></svg>
+            </div>
+        </section>
+        <h3 id="dailyCount"><span>Confirmed Daily Count</span>
+            <input type="radio" value="linear" id="linear" name="axis" checked /><label for="linear">linear</label>
+            <input type="radio" value="logarithmic" id="logarithmic" name="axis" /><label
+                for="logarithmic">Logarithmic</label>
+        </h3>
+        <section>
+            <div>
+                <div id="container2"></div>
+            </div>
+            <div>
+                <h3 id="selectedCountry"></h3>
+                <svg id="s2"></svg>
+            </div>
+        </section>
     </main>
 </body>
 <script src="dist/main.js"></script>

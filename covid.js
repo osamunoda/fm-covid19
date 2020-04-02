@@ -1,46 +1,167 @@
 import * as d3 from 'd3';
 import 'd3-selection-multi';
+import { color } from 'd3';
 
-/** Downloadable Covid-19 Database: https://github.com/CSSEGISandData/COVID-19 
- * This github link is introduced here. https://gisanddata.maps.arcgis.com/apps/opsdashboard/index.html#/bda7594740fd40299423467b48e9ecf6
-*/
 const url_confirmed = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
 const url_death = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv";
 const url_recovered = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv";
-const urls = {
-    confirmed: url_confirmed,
-    death: url_death,
-    recovered: url_recovered
-};
 
-let selected = ["US", "Italy", "Japan"]; // Default countries to show
-const color = d3.scaleOrdinal(d3.schemeCategory10);
+const urls = [url_confirmed, url_death, url_recovered];
+const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
 
-fetch(url_confirmed)
-    .then(response => response.text()).then(result => {
-        viz(summerize(result), selected);
-        init(selected);
+const state = {
+    confirmed: [],
+    death: [],
+    recovered: [],
+    active: [],
+    countries: ["US", "Italy", "Japan"],
+    country: "Japan",
+    axisType: "logarythmic",
+    selectedType: "confirmed"
+}
+const chart_config = {
+    width: 640,
+    height: 440,
+    margin: 70
+}
+
+Promise.all(urls.map(url => fetch(url).then(response => response.text())))
+    .then(result => {
+        state.confirmed = summerize(result[0]);
+        state.death = summerize(result[1]);
+        state.recovered = summerize(result[2]);
+        state.active = getActive(state.confirmed, state.death, state.recovered);
+        setup_optionHandlers();
+        const headerRow = result[0].split("\n")[0].split(",");
+        d3.select("#selectedCountry").text("Selected Country: " + state.country).attr("text-align", "right");
+        d3.select("#latestDate").text("Last Updated: " + headerRow[headerRow.length - 1]);
+        update();
     });
 
-/** define radiobutton-change handler */
-document.querySelectorAll("input[type='radio']").forEach(item => {
-    item.onclick = () => {
+function update() {
+    const data = state[state.selectedType];
+    ListCountries(data, "#container", "checkbox");
+    ListCountries(data, "#container2", "radio");
+    LineChart(data, "#s1", chart_config);
+    BarChart(data, "#s2", state.axisType, chart_config);
+}
+function setup_optionHandlers() {
+    d3.select("#caseTypes").selectAll("input+label").on("click", (d, i, n) => {
+        state.selectedType = n[i].getAttribute("for");
+        d3.select("#dailyCount>span").text(n[i].textContent + " Daily Count")
         update();
-    }
-})
+    });
+    d3.select("#caseTypes").selectAll("input").on("click", (d, i, n) => {
+        state.selectedType = document.querySelector("#caseTypes input:checked").value;
+        const str = state.selectedType.slice(0, 1).toUpperCase() + state.selectedType.slice(1);
+        d3.select("#dailyCount>span").text(str + " Daily Count")
+        update();
+    });
+    d3.selectAll("#dailyCount input+label").on("click", (d, i, n) => {
+        state.axisType = n[i].textContent.toLowerCase();
+        update();
+    });
+    d3.selectAll("#dailyCount input").on("click", (d, i, n) => {
+        state.axisType = n[i].value;
+        update();
+    });
+}
+function ListCountries(data, elm, type) {
+    data.sort((a, b) => b.latest - a.latest);
+    d3.select(elm).styles({
+        display: "inline-block",
+        width: "250px",
+        height: "500px",
+        overflow: "scroll",
+        "border": "1px solid"
+    });
+    const rowBack = (d, i) => {
+        let color = "white";
+        if (type === "radio") {
+            if (state.country === d.name) {
+                color = "#333"
+            }
+        } else if (type === "checkbox") {
+            const index = state.countries.indexOf(d.name);
+            if (index !== -1) {
+                color = colorScale(index)
+            }
+        } else {
 
-/**
- *  Functions
- */
+        }
+        return color;
+    };
+    const rowColor = (d, i) => {
+        let color = "black";
+        if (type === "radio") {
+            if (state.country === d.name) {
+                color = "white"
+            }
+        } else if (type === "checkbox") {
+            const index = state.countries.indexOf(d.name);
+            if (index !== -1) {
+                color = "white"
+            }
+        } else {
 
-/**
- * Parse downloaded data
- * In the downloaded data, Australia, China, Canada are special. These countries are reported as state/country style.
- * (Using addCountry function, sum(state date) is calculated.)
- * @param {*} csv 
- */
-function summerize(csv) {
+        }
+        return color;
+    };
+    const checker = (d, i) => {
+        let check = "";
+        if (type === "radio") {
+            if (state.country === d.name) {
+                check = " checked";
+            }
+        } else if (type === "checkbox") {
+            const index = state.countries.indexOf(d.name);
+            if (index !== -1) {
+                check = " checked";
+            }
+        } else {
+
+        }
+        return check;
+    };
+
+    d3.select(elm).selectAll("div." + type).data(data).join("div").attr("class", type)
+        .styles({
+            width: "250px",
+            "box-sizing": "border-box",
+            height: "30px",
+            border: "1px solid #ccc",
+            display: "flex",
+            "justify-content": "space-between",
+            font: "16px/30px sans-serif",
+            padding: "0 1rem",
+            background: (d, i) => rowBack(d, i),
+            color: (d, i) => rowColor(d, i)
+        }).html((d, index) => "<div><input" + checker(d) + " style='width:20px;visibility:show' type='" + type + "'/>" + (index + 1) + " <span>" + d.name + "</span></div><div>" + d3.format(",")(d.latest) + "</div>")
+        .on("click", (d, i, n) => {
+            if (type === "checkbox") {
+                const checker = n[i].querySelector("input");
+                checker.checked = !checker.checked;
+                if (checker.checked) {
+                    state.countries.push(d.name)
+                } else {
+                    state.countries = state.countries.filter(item => item !== d.name)
+                }
+            } else if (type === "radio") {
+                const checker = n[i].querySelector("input[type='radio']");
+                checker.checked = true;
+                state.country = d.name;
+                d3.select("#selectedCountry").text("Selected Country: " + state.country).attr("text-align", "right");
+            }
+            update();
+        });
+}
+function sanitize(csv) {
     const arr = csv.split("\n");
+    const result = arr.map(item => item.split(/[^0-9a-zA-Z ,\.]/).join(""))
+    return result;
+}
+function summerize(csv) {
+    const arr = sanitize(csv);
     const countries = [];
     arr.forEach(row => {
         const data = row.split(",");
@@ -55,20 +176,8 @@ function summerize(csv) {
     addCountry(arr, countries, "Australia", dataLength);
     addCountry(arr, countries, "China", dataLength);
     addCountry(arr, countries, "Canada", dataLength, ["Diamond Princess", "Recovered"]);
-    countries.sort((a, b) => b.latest - a.latest);
-    d3.select("#latestDate").text("Last Updated: " + arr[0].split(",").slice(-1)[0]);
-    // Countries list
-    panels(countries);
     return countries;
 }
-/**
- * 
- * @param {*} arr : downloaded csv split by \n
- * @param {*} allCountries prased csv data
- * @param {*} countryName string[] 
- * @param {*} dataLength length of occurence data array
- * @param {*} excludes state to be excluded
- */
 function addCountry(arr, allCountries, countryName, dataLength, excludes) {
     const country_states = arr.filter(row => {
         const state = row.split(",")[0];
@@ -91,31 +200,41 @@ function addCountry(arr, allCountries, countryName, dataLength, excludes) {
     country.latest = country.data[country.data.length - 1];
     allCountries.push(country);
 }
-/**
- * Visualize Data
- * @param {*} countries parsed data from csv
- * @param {*} selected string[], default country names
- */
-function viz(countries, selected) {
-    const width = 640, height = 440, margin = 70;
-    d3.select("svg").style("width", width).style("height", height);
+function getActive(confirmed, death, recovered) {
+    const active = Array(confirmed.length).fill({});
+    const result = active.map((item, i) => {
+        const country = confirmed[i].name;
+        const data = confirmed[i].data;
+        const d_array = death.find(item => item.name === country).data;
+        const r_array = recovered.find(item => item.name === country).data;
+        const a_array = data.map((item, index) => {
+            return (item - d_array[index] - r_array[index])
+        });
+        return { name: country, data: a_array, latest: a_array[a_array.length - 1] }
+    });
+    return result;
+}
+function LineChart(data, elmID, config) {
+    const countries = data;
+    const width = config.width, height = config.height, margin = config.margin;
+    d3.select(elmID).style("width", width).style("height", height);
     const maxY = d3.max(countries.map(item => item.latest).concat([1000000]));
     // scale
     const scaleX = d3.scaleLinear().domain([0, countries[0].data.length]).range([margin, width - margin]);
     const scaleY = d3.scaleLog(10).clamp(true).domain([1, maxY]).range([height - margin, margin]);
-    const color2 = d3.scaleOrdinal().range(d3.schemeCategory10);
+
     //axes
     const axisX = d3.axisBottom(scaleX);
     const axisY = d3.axisLeft(scaleY).ticks(10, 0).tickSize(-500).ticks(5).tickFormat(d => d);
     d3.select("svg").append("g").call(axisY).attr("transform", `translate(${margin},0)`);
     d3.select("svg").append("g").call(axisX).attr("transform", `translate(0, ${height - margin})`);
     // Data filtering
-    const filtered = countries.filter(country => selected.indexOf(country.name) !== -1);
-    const svg = d3.select("svg");
+    const filtered = countries.filter(country => state.countries.indexOf(country.name) !== -1);
+    const svg = d3.select(elmID);
     // Draw lines
     svg.selectAll("path.line").data(filtered.map(item => item.data)).join("path").attr("class", "line").attrs({
         d: d3.line().x((d, i) => scaleX(i)).y((d, i) => scaleY(d)),
-        stroke: (d, i) => color2(i),
+        stroke: (d, i) => colorScale(state.countries.indexOf(filtered[i].name)),
         fill: "none",
         "stroke-width": 2
     });
@@ -124,76 +243,34 @@ function viz(countries, selected) {
         x: (d, i) => scaleX(d.data.length),
         y: (d, i) => scaleY(d.data[d.data.length - 1]),
         stroke: "none",
-        fill: (d, i) => color2(i)
+        fill: (d, i) => colorScale(state.countries.indexOf(d.name))
     }).text(d => d.name);
 }
-/**
- * List country names by count descending
- * add click-handler
- * @param {*} countries parsed data from csv
- */
-function panels(countries) {
-    d3.select("div#container").styles({
-        display: "inline-block",
-        width: "250px",
-        height: "500px",
-        overflow: "scroll",
-        "border": "1px solid"
-    });
-    d3.select("div#container").selectAll("div.cell").data(countries).join("div").attr("class", "cell").styles({
-        width: "250px",
-        "box-sizing": "border-box",
-        height: "30px",
-        border: "1px solid #ccc",
-        display: "flex",
-        "justify-content": "space-between",
-        font: "16px/30px sans-serif",
-        padding: "0 1rem",
-        background: "white"
-    }).html((d, index) => "<div><input style='width:1px;visibility:hidden' type='checkbox'/>" + (index + 1) + " <span>" + d.name + "</span></div><div>" + d3.format(",")(d.latest) + "</div>")
-        .on("click", (d, i, n) => {
-            const checker = n[i].querySelector("input");
-            checker.checked = !checker.checked;
-            if (checker.checked) {
-                selected.push(d.name)
-            } else {
-                selected = selected.filter(item => item !== d.name)
-            }
-            update();
-        });
-
-}
-/**
- * Redraw the line graph
- */
-function update() {
-    const target = Array.from(document.querySelectorAll("input:checked+span")).map(item => item.textContent);
-    // specify the url via radiobuttons
-    const url = urls[document.querySelector("input[type='radio']:checked").id];
-
-    fetch(url).then(response => response.text()).then(result => {
-        viz(summerize(result), target);
-        init(selected);
+function BarChart(data, elmID, type, config) {
+    const countries = data;
+    const country = countries.find(item => item.name === state.country);
+    const width = config.width, height = config.height, margin = config.margin;
+    const cases_day = country.data.map((item, index, arr) => index === 0 ? item : (arr[index] - arr[index - 1]));
+    const bar_width = (width - margin * 2) / cases_day.length;
+    const svg = d3.select(elmID);
+    svg.style("width", width).style("height", height);
+    const maxY = type === "logarithmic" ? 100000 : d3.max(cases_day);
+    // scale
+    const scaleX = d3.scaleLinear().domain([0, cases_day.length]).range([margin, width - margin]);
+    const scaleY = type === "logarithmic" ? d3.scaleLog(10).clamp(true).domain([1, maxY]).range([height - margin, margin]) : d3.scaleLinear().domain([0, maxY]).range([height - margin, margin]);
+    //axes
+    const axisX = d3.axisBottom(scaleX);
+    const axisY = d3.axisLeft(scaleY).ticks(10, 0).tickSize(-500).ticks(5).tickFormat(d => d);
+    svg.selectAll("g").remove();
+    svg.append("g").call(axisY).attr("transform", `translate(${margin},0)`);
+    svg.append("g").call(axisX).attr("transform", `translate(0, ${height - margin})`);
+    // Data filtering
+    svg.selectAll("rect").data(cases_day).join("rect").attrs({
+        stroke: "white",
+        fill: "#333",
+        x: (d, i) => (scaleY(0) - scaleY(d)) > 0 ? scaleX(i) : 0,
+        y: d => scaleY(d),
+        width: bar_width,
+        height: d => Math.abs(scaleY(0) - scaleY(d))
     });
 }
-/**
- * Reset country list after update
- * @param {*} selected string[] selected countries
- */
-function init(selected) {
-    const items = document.querySelectorAll("#container>div");
-    let counter = 0;
-    items.forEach(item => {
-        if (selected.indexOf(item.querySelector("input + span").textContent) !== -1) {
-            item.style.background = color(counter);
-            item.style.color = "white";
-            item.querySelector("input").checked = true;
-            counter++;
-        } else {
-            item.style.background = "white";
-            item.style.color = "black";
-            item.querySelector("input").checked = false;
-        }
-    });
-}
-
