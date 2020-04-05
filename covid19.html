@@ -12,6 +12,7 @@
             font-family: Arial, sans-serif;
         }
 
+
         body {
             padding: 2rem;
             background: #eee;
@@ -52,15 +53,12 @@
         header {
             color: white;
             background-color: #333;
-            ;
+            width: 100%;
         }
 
         main {
             padding: 1rem;
-        }
-
-        section {
-            padding: 1rem;
+            position: relative;
         }
 
         main>section {
@@ -77,8 +75,86 @@
             padding: 1rem;
         }
 
+        #dailyCount {
+            margin: 1rem 0;
+        }
+
+        #dailyCount>span {
+            margin-left: 1rem;
+        }
+
         svg {
             background: white;
+            width: 100%;
+        }
+
+        .countryList {
+            display: none;
+        }
+
+
+
+        body {
+            padding: 0;
+        }
+
+        #caseTypes,
+        #axisType {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+
+        }
+
+        custom-burger {
+            display: block
+        }
+
+        h3 input[type=radio] {
+            margin: 0.5rem 0 0.5rem 0.5rem;
+        }
+
+        .subTitle {
+            padding: 0 0 1rem 0;
+            ;
+        }
+
+
+
+
+
+        @media screen and (min-width:480px) {
+            br {
+                display: none;
+            }
+
+            .countryList {
+                position: relative;
+                height: 500px;
+            }
+
+            h3 input[type=radio] {
+                margin: 1rem 0.5rem 1rem 1rem;
+            }
+
+            #caseTypes {
+                align-items: center;
+            }
+        }
+
+        @media screen and (min-width:1023px) {
+            custom-burger {
+                display: none;
+            }
+
+            .countryList {
+                display: block;
+            }
+
+            body {
+                width: 1024px;
+                margin: 0 auto;
+            }
         }
     </style>
 </head>
@@ -87,38 +163,54 @@
     <header>
         <h1>Covid-19</h1>
         <h3 id="caseTypes">
-            <input type="radio" value="confirmed" id="confirmed" name="case" checked /><label
-                for="confirmed">Confirmed</label>
-            <input type="radio" value="death" id="death" name="case" /><label for="death">Death</label>
-            <input type="radio" value="recovered" id="recovered" name="case" /><label for="recovered">Recovered</label>
-            <input type="radio" value="active" id="active" name="case" /><label for="active">Active</label>
+            <custom-burger bool="true" color="white" sidePanel="sidepanel"></custom-burger>
+            <div>
+                <input type="radio" value="confirmed" id="confirmed" name="case" checked /><label
+                    for="confirmed">Confirmed</label>
+                <input type="radio" value="death" id="death" name="case" /><label for="death">Death</label>
+                <br>
+                <input type="radio" value="recovered" id="recovered" name="case" /><label
+                    for="recovered">Recovered</label>
+                <input type="radio" value="active" id="active" name="case" /><label for="active">Active</label>
+            </div>
+
         </h3>
     </header>
     <main>
-        <section>
-            <div>
+        <section id="sec1">
+            <div class="countryList">
                 <div id="container"></div>
             </div>
-            <div>
+            <div class="frame">
                 <h3 id="latestDate"></h3>
                 <svg id="s1"></svg>
             </div>
         </section>
-        <h3 id="dailyCount"><span>Confirmed Daily Count</span>
-            <input type="radio" value="linear" id="linear" name="axis" checked /><label for="linear">linear</label>
-            <input type="radio" value="logarithmic" id="logarithmic" name="axis" /><label
-                for="logarithmic">Logarithmic</label>
+        <h3 id="dailyCount">
+            <div class="subTitle">Confirmed Daily Count</div>
+            <div id="axisType">
+                <custom-burger bool="true" color="white" sidePanel="sidepanel2"></custom-burger>
+                <div>
+                    <input type="radio" value="linear" id="linear" name="axis" checked /><label
+                        for="linear">linear</label>
+                    <input type="radio" value="logarithmic" id="logarithmic" name="axis" /><label
+                        for="logarithmic">Logarithmic</label>
+                </div>
+            </div>
+
         </h3>
-        <section>
-            <div>
+        <section id="sec2">
+            <div class="countryList">
                 <div id="container2"></div>
             </div>
-            <div>
+            <div class="frame">
                 <h3 id="selectedCountry"></h3>
                 <svg id="s2"></svg>
             </div>
         </section>
     </main>
+    <side-panel id="sidepanel" bool="false" parent="sec1" size="270" target="container"></side-panel>
+    <side-panel id="sidepanel2" bool="false" parent="sec2" size="270" target="container2"></side-panel>
 </body>
 <script src="dist/main.js"></script>
 

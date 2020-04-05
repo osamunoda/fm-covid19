@@ -1,6 +1,7 @@
 import * as d3 from 'd3';
 import 'd3-selection-multi';
-import { color } from 'd3';
+import './burger';
+import './sidePanel';
 
 const url_confirmed = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
 const url_death = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv";
@@ -20,11 +21,11 @@ const state = {
     selectedType: "confirmed"
 }
 const chart_config = {
-    width: 640,
-    height: 440,
+    width: window.innerWidth > 1023 ? (document.querySelector("section").getBoundingClientRect().width - 250) : document.querySelector("section").getBoundingClientRect().width,
+    height: window.innerWidth > 480 ? 450 : 350,
     margin: 70
 }
-
+console.log("chart", chart_config);
 Promise.all(urls.map(url => fetch(url).then(response => response.text())))
     .then(result => {
         state.confirmed = summerize(result[0]);
@@ -48,13 +49,13 @@ function update() {
 function setup_optionHandlers() {
     d3.select("#caseTypes").selectAll("input+label").on("click", (d, i, n) => {
         state.selectedType = n[i].getAttribute("for");
-        d3.select("#dailyCount>span").text(n[i].textContent + " Daily Count")
+        d3.select("div.subTitle").text(n[i].textContent + " Daily Count");
         update();
     });
     d3.select("#caseTypes").selectAll("input").on("click", (d, i, n) => {
         state.selectedType = document.querySelector("#caseTypes input:checked").value;
         const str = state.selectedType.slice(0, 1).toUpperCase() + state.selectedType.slice(1);
-        d3.select("#dailyCount>span").text(str + " Daily Count")
+        d3.select("div.subTitle").text(str + " Daily Count")
         update();
     });
     d3.selectAll("#dailyCount input+label").on("click", (d, i, n) => {
@@ -66,23 +67,27 @@ function setup_optionHandlers() {
         update();
     });
 }
+
 function ListCountries(data, elm, type) {
+    console.log("ListCountries", data, elm, type)
     data.sort((a, b) => b.latest - a.latest);
     d3.select(elm).styles({
         display: "inline-block",
         width: "250px",
-        height: "500px",
+        height: "100%",
         overflow: "scroll",
         "border": "1px solid"
     });
     const rowBack = (d, i) => {
+        console.log("rowback#########--type:", type)
         let color = "white";
         if (type === "radio") {
-            if (state.country === d.name) {
+            if (state.country === d) {
                 color = "#333"
             }
         } else if (type === "checkbox") {
-            const index = state.countries.indexOf(d.name);
+            const index = state.countries.indexOf(d);
+            console.log("rowback--------------", d, index);
             if (index !== -1) {
                 color = colorScale(index)
             }
@@ -94,11 +99,11 @@ function ListCountries(data, elm, type) {
     const rowColor = (d, i) => {
         let color = "black";
         if (type === "radio") {
-            if (state.country === d.name) {
+            if (state.country === d) {
                 color = "white"
             }
         } else if (type === "checkbox") {
-            const index = state.countries.indexOf(d.name);
+            const index = state.countries.indexOf(d);
             if (index !== -1) {
                 color = "white"
             }
@@ -110,11 +115,11 @@ function ListCountries(data, elm, type) {
     const checker = (d, i) => {
         let check = "";
         if (type === "radio") {
-            if (state.country === d.name) {
+            if (state.country === d) {
                 check = " checked";
             }
         } else if (type === "checkbox") {
-            const index = state.countries.indexOf(d.name);
+            const index = state.countries.indexOf(d);
             if (index !== -1) {
                 check = " checked";
             }
@@ -123,7 +128,7 @@ function ListCountries(data, elm, type) {
         }
         return check;
     };
-
+    console.log("#############", d3.select(elm), state.countries);
     d3.select(elm).selectAll("div." + type).data(data).join("div").attr("class", type)
         .styles({
             width: "250px",
@@ -134,23 +139,37 @@ function ListCountries(data, elm, type) {
             "justify-content": "space-between",
             font: "16px/30px sans-serif",
             padding: "0 1rem",
-            background: (d, i) => rowBack(d, i),
-            color: (d, i) => rowColor(d, i)
-        }).html((d, index) => "<div><input" + checker(d) + " style='width:20px;visibility:show' type='" + type + "'/>" + (index + 1) + " <span>" + d.name + "</span></div><div>" + d3.format(",")(d.latest) + "</div>")
+            background: (d, i) => { console.log(d, i); return rowBack(d.name, i) },
+            color: (d, i) => rowColor(d.name, i)
+        }).html((d, index) => "<div><input" + checker(d.name) + " style='width:1px;visibility:hidden' type='" + type + "'/>" + (index + 1) + " <span>" + d.name + "</span></div><div>" + d3.format(",")(d.latest) + "</div>")
         .on("click", (d, i, n) => {
             if (type === "checkbox") {
                 const checker = n[i].querySelector("input");
                 checker.checked = !checker.checked;
+
                 if (checker.checked) {
                     state.countries.push(d.name)
                 } else {
                     state.countries = state.countries.filter(item => item !== d.name)
                 }
+                n[i].style.background = rowBack(d.name);
+                n[i].style.color = rowColor(d.name);
+                console.log("Checked", state.countries)
             } else if (type === "radio") {
                 const checker = n[i].querySelector("input[type='radio']");
                 checker.checked = true;
                 state.country = d.name;
                 d3.select("#selectedCountry").text("Selected Country: " + state.country).attr("text-align", "right");
+                const lines = n[i].parentElement.querySelectorAll("div.radio");
+                lines.forEach(line => {
+                    line.style.background = "white";
+                    line.style.color = "black";
+                    line.querySelector("input").checked = false;
+                })
+                n[i].style.background = rowBack(d.name);
+                n[i].style.color = rowColor(d.name);
+                n[i].querySelector("input").checked = true;
+
             }
             update();
         });
@@ -225,7 +244,7 @@ function LineChart(data, elmID, config) {
 
     //axes
     const axisX = d3.axisBottom(scaleX);
-    const axisY = d3.axisLeft(scaleY).ticks(10, 0).tickSize(-500).ticks(5).tickFormat(d => d);
+    const axisY = d3.axisLeft(scaleY).ticks(10, 0).tickSize(chart_config.margin * 2 - chart_config.width).ticks(5).tickFormat(d => d);
     d3.select("svg").append("g").call(axisY).attr("transform", `translate(${margin},0)`);
     d3.select("svg").append("g").call(axisX).attr("transform", `translate(0, ${height - margin})`);
     // Data filtering
@@ -260,7 +279,7 @@ function BarChart(data, elmID, type, config) {
     const scaleY = type === "logarithmic" ? d3.scaleLog(10).clamp(true).domain([1, maxY]).range([height - margin, margin]) : d3.scaleLinear().domain([0, maxY]).range([height - margin, margin]);
     //axes
     const axisX = d3.axisBottom(scaleX);
-    const axisY = d3.axisLeft(scaleY).ticks(10, 0).tickSize(-500).ticks(5).tickFormat(d => d);
+    const axisY = d3.axisLeft(scaleY).ticks(10, 0).tickSize(chart_config.margin * 2 - chart_config.width).ticks(5).tickFormat(d => d);
     svg.selectAll("g").remove();
     svg.append("g").call(axisY).attr("transform", `translate(${margin},0)`);
     svg.append("g").call(axisX).attr("transform", `translate(0, ${height - margin})`);
