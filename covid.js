@@ -20,12 +20,9 @@ const state = {
     axisType: "logarythmic",
     selectedType: "confirmed"
 }
-const chart_config = {
-    width: window.innerWidth > 1023 ? (document.querySelector("section").getBoundingClientRect().width - 250) : document.querySelector("section").getBoundingClientRect().width,
-    height: window.innerWidth > 480 ? 450 : 350,
-    margin: 70
-}
-console.log("chart", chart_config);
+const chart_config = {};
+let timer = null;
+
 Promise.all(urls.map(url => fetch(url).then(response => response.text())))
     .then(result => {
         state.confirmed = summerize(result[0]);
@@ -38,8 +35,21 @@ Promise.all(urls.map(url => fetch(url).then(response => response.text())))
         d3.select("#latestDate").text("Last Updated: " + headerRow[headerRow.length - 1]);
         update();
     });
-
+window.onresize = function () {
+    timer = setTimeout(() => {
+        if (timer) {
+            clearTimeout(timer);
+        }
+        update();
+    }, 200);
+}
+function update_config() {
+    chart_config.width = window.innerWidth > 1023 ? (document.querySelector("section").getBoundingClientRect().width - 250) : document.querySelector("section").getBoundingClientRect().width;
+    chart_config.height = window.innerWidth > 480 ? 450 : 350;
+    chart_config.margin = 70;
+}
 function update() {
+    update_config();
     const data = state[state.selectedType];
     ListCountries(data, "#container", "checkbox");
     ListCountries(data, "#container2", "radio");
@@ -69,7 +79,6 @@ function setup_optionHandlers() {
 }
 
 function ListCountries(data, elm, type) {
-    console.log("ListCountries", data, elm, type)
     data.sort((a, b) => b.latest - a.latest);
     d3.select(elm).styles({
         display: "inline-block",
@@ -79,7 +88,6 @@ function ListCountries(data, elm, type) {
         "border": "1px solid"
     });
     const rowBack = (d, i) => {
-        console.log("rowback#########--type:", type)
         let color = "white";
         if (type === "radio") {
             if (state.country === d) {
@@ -87,7 +95,6 @@ function ListCountries(data, elm, type) {
             }
         } else if (type === "checkbox") {
             const index = state.countries.indexOf(d);
-            console.log("rowback--------------", d, index);
             if (index !== -1) {
                 color = colorScale(index)
             }
@@ -128,7 +135,6 @@ function ListCountries(data, elm, type) {
         }
         return check;
     };
-    console.log("#############", d3.select(elm), state.countries);
     d3.select(elm).selectAll("div." + type).data(data).join("div").attr("class", type)
         .styles({
             width: "250px",
@@ -139,7 +145,7 @@ function ListCountries(data, elm, type) {
             "justify-content": "space-between",
             font: "16px/30px sans-serif",
             padding: "0 1rem",
-            background: (d, i) => { console.log(d, i); return rowBack(d.name, i) },
+            background: (d, i) => rowBack(d.name, i),
             color: (d, i) => rowColor(d.name, i)
         }).html((d, index) => "<div><input" + checker(d.name) + " style='width:1px;visibility:hidden' type='" + type + "'/>" + (index + 1) + " <span>" + d.name + "</span></div><div>" + d3.format(",")(d.latest) + "</div>")
         .on("click", (d, i, n) => {
@@ -154,7 +160,6 @@ function ListCountries(data, elm, type) {
                 }
                 n[i].style.background = rowBack(d.name);
                 n[i].style.color = rowColor(d.name);
-                console.log("Checked", state.countries)
             } else if (type === "radio") {
                 const checker = n[i].querySelector("input[type='radio']");
                 checker.checked = true;
@@ -245,6 +250,7 @@ function LineChart(data, elmID, config) {
     //axes
     const axisX = d3.axisBottom(scaleX);
     const axisY = d3.axisLeft(scaleY).ticks(10, 0).tickSize(chart_config.margin * 2 - chart_config.width).ticks(5).tickFormat(d => d);
+    d3.select("svg").selectAll("g").remove();
     d3.select("svg").append("g").call(axisY).attr("transform", `translate(${margin},0)`);
     d3.select("svg").append("g").call(axisX).attr("transform", `translate(0, ${height - margin})`);
     // Data filtering

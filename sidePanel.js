@@ -45,7 +45,6 @@ class SidePanel extends HTMLElement {
             this.parent = newValue;
         }
         if (name === "bool") {
-            console.log("bool-----------this.box", this.box.childNodes.length);
             if (newValue === "false") {
                 this.style.left = "-" + this.getAttribute("size") + "px";
             } else {
