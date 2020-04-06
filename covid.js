@@ -47,12 +47,13 @@ function update_config() {
     chart_config.width = window.innerWidth > 1023 ? (document.querySelector("section").getBoundingClientRect().width - 250) : document.querySelector("section").getBoundingClientRect().width;
     chart_config.height = window.innerWidth > 480 ? 450 : 350;
     chart_config.margin = 70;
+    chart_config.oneColumn = window.innerWidth < 1024
 }
 function update() {
     update_config();
     const data = state[state.selectedType];
-    ListCountries(data, "#container", "checkbox");
-    ListCountries(data, "#container2", "radio");
+    ListCountries(data, "#container", "checkbox", "#sidepanel");
+    ListCountries(data, "#container2", "radio", "#sidepanel2");
     LineChart(data, "#s1", chart_config);
     BarChart(data, "#s2", state.axisType, chart_config);
 }
@@ -78,9 +79,20 @@ function setup_optionHandlers() {
     });
 }
 
-function ListCountries(data, elm, type) {
+function ListCountries(data, elm, type, shadow) {
     data.sort((a, b) => b.latest - a.latest);
-    d3.select(elm).styles({
+    let baseElement = d3.select(elm);
+    const shadowElm = document.querySelector(shadow);
+    if (shadowElm) {
+        const shadowRoot = shadowElm.shadowRoot;
+        if (shadowRoot) {
+            const temp = shadowRoot.querySelector(elm);
+            if (temp) {
+                baseElement = d3.select(temp);
+            }
+        }
+    }
+    baseElement.styles({
         display: "inline-block",
         width: "250px",
         height: "100%",
@@ -135,7 +147,7 @@ function ListCountries(data, elm, type) {
         }
         return check;
     };
-    d3.select(elm).selectAll("div." + type).data(data).join("div").attr("class", type)
+    baseElement.selectAll("div." + type).data(data).join("div").attr("class", type)
         .styles({
             width: "250px",
             "box-sizing": "border-box",
