@@ -19,7 +19,8 @@ const state = {
     countries: ["US", "Italy", "Japan"],
     country: "Japan",
     axisType: "logarythmic",
-    selectedType: "confirmed"
+    selectedType: "confirmed",
+    accessStorage: true
 }
 const chart_config = {};
 let timer = null;
@@ -52,17 +53,24 @@ function update_config() {
     chart_config.oneColumn = window.innerWidth < 1024
 }
 function getSettings() {
-    if (localStorage.getItem("countries")) {
-        state.countries = localStorage.getItem("countries").split(",")
+    try {
+        if (localStorage && localStorage.getItem("countries")) {
+            state.countries = localStorage.getItem("countries").split(",")
+        }
+        if (localStorage && localStorage.getItem("country")) {
+            state.country = localStorage.getItem("country");
+        }
+    } catch (e) {
+        state.accessStorage = false;
     }
-    if (localStorage.getItem("country")) {
-        state.country = localStorage.getItem("country");
-    }
+
     d3.select("#selectedCountry").text("Selected Country: " + state.country).attr("text-align", "right");
 }
 function setSettings() {
-    localStorage.setItem("countries", state.countries);
-    localStorage.setItem("country", state.country);
+    if (state.accessStorage) {
+        localStorage.setItem("countries", state.countries);
+        localStorage.setItem("country", state.country);
+    }
 }
 function update() {
     getSettings();
