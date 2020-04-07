@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 import 'd3-selection-multi';
 import './burger';
 import './sidePanel';
+import './spinner';
 
 const url_confirmed = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
 const url_death = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv";
@@ -22,7 +23,8 @@ const state = {
 }
 const chart_config = {};
 let timer = null;
-
+const spinner = document.getElementById("spinner");
+spinner.setAttribute("bool", "true");
 Promise.all(urls.map(url => fetch(url).then(response => response.text())))
     .then(result => {
         state.confirmed = summerize(result[0]);
@@ -31,9 +33,9 @@ Promise.all(urls.map(url => fetch(url).then(response => response.text())))
         state.active = getActive(state.confirmed, state.death, state.recovered);
         setup_optionHandlers();
         const headerRow = result[0].split("\n")[0].split(",");
-        d3.select("#selectedCountry").text("Selected Country: " + state.country).attr("text-align", "right");
         d3.select("#latestDate").text("Last Updated: " + headerRow[headerRow.length - 1]);
         update();
+        spinner.style.display = "none";
     });
 window.onresize = function () {
     timer = setTimeout(() => {
@@ -49,7 +51,21 @@ function update_config() {
     chart_config.margin = 70;
     chart_config.oneColumn = window.innerWidth < 1024
 }
+function getSettings() {
+    if (localStorage.getItem("countries")) {
+        state.countries = localStorage.getItem("countries").split(",")
+    }
+    if (localStorage.getItem("country")) {
+        state.country = localStorage.getItem("country");
+    }
+    d3.select("#selectedCountry").text("Selected Country: " + state.country).attr("text-align", "right");
+}
+function setSettings() {
+    localStorage.setItem("countries", state.countries);
+    localStorage.setItem("country", state.country);
+}
 function update() {
+    getSettings();
     update_config();
     const data = state[state.selectedType];
     ListCountries(data, "#container", "checkbox", "#sidepanel");
@@ -188,6 +204,7 @@ function ListCountries(data, elm, type, shadow) {
                 n[i].querySelector("input").checked = true;
 
             }
+            setSettings();
             update();
         });
 }
@@ -291,7 +308,7 @@ function BarChart(data, elmID, type, config) {
     const bar_width = (width - margin * 2) / cases_day.length;
     const svg = d3.select(elmID);
     svg.style("width", width).style("height", height);
-    const maxY = type === "logarithmic" ? 100000 : d3.max(cases_day);
+    const maxY = type === "logarithmic" ? 100000 : getMaxLineValue(d3.max(cases_day));
     // scale
     const scaleX = d3.scaleLinear().domain([0, cases_day.length]).range([margin, width - margin]);
     const scaleY = type === "logarithmic" ? d3.scaleLog(10).clamp(true).domain([1, maxY]).range([height - margin, margin]) : d3.scaleLinear().domain([0, maxY]).range([height - margin, margin]);
@@ -310,4 +327,12 @@ function BarChart(data, elmID, type, config) {
         width: bar_width,
         height: d => Math.abs(scaleY(0) - scaleY(d))
     });
+}
+
+function getMaxLineValue(num) {
+    const numStr = num + "";
+    const firstNum = numStr.slice(0, 1);
+    const nextNum = Number(firstNum) + 1;
+    const upperLineValue = nextNum * 10 ** numStr.slice(1).length;
+    return Number(upperLineValue);
 }
