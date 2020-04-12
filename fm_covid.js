@@ -16,8 +16,8 @@ const state = {
     death: [],
     recovered: [],
     active: [],
-    countries: ["US", "Italy", "Japan"],
-    country: "Japan",
+    countries: "__COUNTRIES__" ? "__COUNTRIES__".split(",") : ["US", "Italy", "Japan"],
+    country: "__COUNTRY__" || "US",
     axisType: "logarythmic",
     selectedType: "confirmed",
     accessStorage: true
@@ -53,25 +53,22 @@ function update_config() {
     chart_config.oneColumn = window.innerWidth < 1024
 }
 function getSettings() {
-    try {
-        if (localStorage && localStorage.getItem("countries")) {
-            state.countries = localStorage.getItem("countries").split(",")
-        }
-        if (localStorage && localStorage.getItem("country")) {
-            state.country = localStorage.getItem("country");
-        }
-    } catch (e) {
-        state.accessStorage = false;
+    // try {
+    //     if (localStorage && localStorage.getItem("countries")) {
+    //         state.countries = localStorage.getItem("countries").split(",")
+    //     }
+    //     if (localStorage && localStorage.getItem("country")) {
+    //         state.country = localStorage.getItem("country");
+    //     }
+    // } catch (e) {
+    //     state.accessStorage = false;
 
-    }
+    // }
 
     d3.select("#selectedCountry").text("Selected Country: " + state.country).attr("text-align", "right");
 }
 function setSettings() {
-    if (state.accessStorage) {
-        localStorage.setItem("countries", state.countries);
-        localStorage.setItem("country", state.country);
-    }
+    location.href = "fmp://$/covid19?script=saveCountry&param=" + state.country + "&$countries=" + state.countries.join(",");
 }
 function update() {
     getSettings();
